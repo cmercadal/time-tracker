@@ -1,44 +1,55 @@
 pipeline {
     agent any
-
+    
     tools {
-        // Install the Maven version configured as "M3" and add it to the path.
-        maven "Maven3"
-        jdk "Java11"
+        maven "mvn386"
+        jdk "java11"
     }
-
+    
+    environment {
+        DISABLE_AUTH = true
+        DB_ENGINE = 'sqlite'
+        
+    }
+    
     stages {
-        stage('Build') {
+        stage('Hello') {
             steps {
-                // Get some code from a GitHub repository
-                git branch: 'master', url: 'https://github.com/bellyster/time-tracker.git'
-
-                // Run Maven on a Unix agent.
-                //sh "mvn -Dmaven.test.failure.ignore=true clean package"
-
-                // To run Maven on a Windows agent, use
-                bat "mvn clean package -DskipTests"
+                echo "Hello World ${DB_ENGINE}"
+                echo "Running ${env.BUILD_ID} on ${env.JENKINS_URL}"
             }
-
-            post {
-                // failed, record the artifacts.
-                success {
-                    echo 'Archivando artefacto'
-                    archiveArtifacts 'core/target/*.jar'
-                    archiveArtifacts 'web/target/*.war'
+        }
+        stage("Git pulling"){
+            steps {
+                //git branch: 'master', url: 'https://github.com/cmercadal/time-tracker.git'
+                 // Checkout the repository using SSH
+                // git branch:'master', credentialsID
+                checkout([$class: 'GitSCM',
+                          branches: [[name: '*/master']],
+                          userRemoteConfigs: [[url: 'git@github.com:cmercadal/time-tracker.git']],
+                          extensions: [[$class: 'CleanBeforeCheckout']]])
+            }
+        }
+        
+        stage("Build con Maven"){
+            steps{
+                sh "mvn -Dmaven.test.failure.ignore=true clean package"
+            }
+            
+            post{
+                success{
+                echo 'archivando artefactos'
+                archiveArtifacts "core/target/*.jar"
+                archiveArtifacts "web/target/*.war" 
                 }
             }
         }
-
-        stage('UNIT TESTS'){
-             steps{
-                 //Unix version
-                 //sh: 'mvn test'
-                 //Ejecutar los tests
-                 echo 'Ejecutando Tests'
-                 bat "mvn test"
-                 }
-             }
-
+        
+        stage("Test maven"){
+            steps{
+                sh "mvn test"
+            }
+        }
+        
     }
 }
