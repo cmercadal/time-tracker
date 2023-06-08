@@ -14,10 +14,10 @@ pipeline {
                 git branch: 'master', url: 'https://github.com/bellyster/time-tracker.git'
 
                 // Run Maven on a Unix agent.
-                //sh "mvn -Dmaven.test.failure.ignore=true clean package"
+                sh "mvn -Dmaven.test.failure.ignore=true clean package"
 
                 // To run Maven on a Windows agent, use
-                bat "mvn clean package -DskipTests"
+                //sh "mvn clean package -DskipTests"
             }
 
             post {
@@ -31,14 +31,22 @@ pipeline {
         }
 
         stage('UNIT TESTS'){
-             steps{
-                 //Unix version
-                 //sh: 'mvn test'
+             steps(){
+
                  //Ejecutar los tests
                  echo 'Ejecutando Tests'
-                 bat "mvn test"
-                 }
-             }
+                 sh "mvn test"
+            }
+        }
+
+        stage("Sonar scan"){
+            steps(){
+                echo 'Sonar analysis'
+                withSonarQubeEnv('sonar'){
+                    sh 'mvn clean package sonar:sonar -Dsonar.junit.reportsPath=/target/surefire-reports/'
+                }
+            }
+        }
 
     }
 }
