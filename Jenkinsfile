@@ -1,31 +1,49 @@
 pipeline {
     agent any
-
+    
     tools {
-        // Install the Maven version configured as "M3" and add it to the path.
-        maven "Maven3"
-        jdk "Java11"
+        maven "mvn386"
+        jdk "java11"
     }
-
+    
+    environment {
+        DISABLE_AUTH = true
+        DB_ENGINE = 'sqlite'
+        
+    }
+    
     stages {
-        stage('Build') {
+        stage('Hello') {
             steps {
-                // Get some code from a GitHub repository
-                git branch: 'master', url: 'https://github.com/bellyster/time-tracker.git'
-
-                // Run Maven on a Unix agent.
-                sh "mvn -Dmaven.test.failure.ignore=true clean package"
+                echo "Hello World ${DB_ENGINE}"
+                echo "Running ${env.BUILD_ID} on ${env.JENKINS_URL}"
+            }
+        }
+        stage("Git pulling"){
+            steps {
 
                 // To run Maven on a Windows agent, use
                 //sh "mvn clean package -DskipTests"
+                //git branch: 'master', url: 'https://github.com/cmercadal/time-tracker.git'
+                 // Checkout the repository using SSH
+                // git branch:'master', credentialsID
+                checkout([$class: 'GitSCM',
+                          branches: [[name: '*/master']],
+                          userRemoteConfigs: [[url: 'git@github.com:cmercadal/time-tracker.git']],
+                          extensions: [[$class: 'CleanBeforeCheckout']]])
             }
-
-            post {
-                // failed, record the artifacts.
-                success {
-                    echo 'Archivando artefacto'
-                    archiveArtifacts 'core/target/*.jar'
-                    archiveArtifacts 'web/target/*.war'
+        }
+        
+        stage("Build con Maven"){
+            steps{
+                sh "mvn -Dmaven.test.failure.ignore=true clean package"
+            }
+            
+            post{
+                success{
+                echo 'archivando artefactos'
+                archiveArtifacts "core/target/*.jar"
+                archiveArtifacts "web/target/*.war" 
                 }
             }
         }
@@ -47,6 +65,30 @@ pipeline {
                 }
             }
         }
+
+        stage('Upload artifact'){
+            steps{
+                nexusArtifactUploader(
+                    nexusVersion: 'nexus3',
+                    protocol: 'http',
+                    nexusUrl: 'localhost:8081',
+                    groupId: 'com.camila',
+                    version: "${env.BUILD_ID}-${env.BUILD_TIMESTAMP}",
+                    repository: 'DevOpsRepo',
+                    credentialsId: 'nexus',
+                    artifacts: [
+                        [artifactId: 'webApp',
+                         classifier: '',
+                         file: 'web/target/time-tracker-web-0.5.0-SNAPSHOT.war',
+                         type: 'war'],
+                         [artifactId: 'coreApp',
+                         classifier: '',
+                         file: 'core/target/time-tracker-core-0.5.0-SNAPSHOT.jar',
+                         type: 'jar']
+                        ]
+                    )
+                }
+            }
 
     }
 }
