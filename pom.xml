@@ -27,6 +27,16 @@
         <module>web</module>
     </modules>
 
+    <dependencies>
+                <!-- https://mvnrepository.com/artifact/org.jacoco/jacoco-maven-plugin -->
+        <dependency>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <version>0.8.10</version>
+        </dependency>
+
+    </dependencies>
+
     <build>
         <pluginManagement>
             <plugins>
@@ -86,6 +96,18 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <reportSets>
+                <reportSet>
+                    <reports>
+                    <!-- select non-aggregate reports -->
+                    <report>report</report>
+                    </reports>
+                </reportSet>
+                </reportSets>
             </plugin>
         </plugins>
     </reporting>
